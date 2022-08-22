@@ -20,6 +20,8 @@ import scipy.optimize as spo
 
 import matplotlib.pyplot as plt
 
+import pdb as pdb
+
 # +
 # standardizing number of samples to draw from h0
 REF_N = 100_000 
@@ -29,6 +31,8 @@ def theta_to_distribution(theta):
     return sps.norm(loc=theta[0], scale=theta[1])
 
 # Pick GOF
+
+# 2-sample KS test
 def cal_t(test_sample, h0):
     ref_samples = h0.rvs(REF_N)
     t, p = sps.ks_2samp(test_sample, ref_samples, alternative='two-sided')
@@ -139,21 +143,8 @@ for ind_toy in range(n_toys):
     this_sample, this_theta_hat, this_t, _ = draw_fit_cal_t(true_distribution, cali_size)
     true_h0_t_bag[ind_toy] = this_t
     
-# bootstrapping from cali set and refitting
-bootstrap_h0_t_bag = np.ones(n_toys)
-for ind_toy in range(n_toys):
-    this_sample, this_theta_hat, this_t, _ = bootstrap_fit_cal_t(cali_sample, cali_size)
-    bootstrap_h0_t_bag[ind_toy] = this_t
-
-# bootstrapping from cali set, no refitting
-bootstrap_cheater_h0_t_bag = np.ones(n_toys)
-for ind_toy in range(n_toys):
-    _, this_t, _ = bootstrap_cal_t(cali_sample, cali_h0, cali_size)
-    bootstrap_cheater_h0_t_bag[ind_toy] = this_t
-    
-# procedure in reality
+# draw from each refitted cali h0 (procedure in reality)
 refitted_h0_t_bag = np.ones(n_toys)
-
 this_distribution = cali_h0 # start with h0 from fitting calibration sample
 for ind_toy in range(n_toys):
     this_sample, this_theta_hat, this_t, _ = draw_fit_cal_t(this_distribution, cali_size)
@@ -165,6 +156,28 @@ cheater_h0_t_bag = np.ones(n_toys)
 for ind_toy in range(n_toys):
     _, this_t, _ = draw_cal_t(cali_h0, cali_size)
     cheater_h0_t_bag[ind_toy] = this_t
+    
+# bootstrapping from cali set and refitting
+bootstrap_h0_t_bag = np.ones(n_toys)
+for ind_toy in range(n_toys):
+    this_sample, this_theta_hat, this_t, _ = bootstrap_fit_cal_t(cali_sample, cali_size)
+    bootstrap_h0_t_bag[ind_toy] = this_t
+
+# bootstrapping from cali set, no refitting
+bootstrap_cheater_h0_t_bag = np.ones(n_toys)
+for ind_toy in range(n_toys):
+    _, this_t, _ = bootstrap_cal_t(cali_sample, cali_h0, cali_size)
+    bootstrap_cheater_h0_t_bag[ind_toy] = this_t
+
+# -
+
+
+
+test = true_distribution.rvs(REF_N)
+
+aa, bb = np.histogram(test, bins=10, density=True)
+
+aa
 
 # +
 distribution_bag = {'not_refitted': cheater_h0_t_bag,
@@ -177,8 +190,8 @@ distribution_bag = {'not_refitted': cheater_h0_t_bag,
 legend_bag = {'not_refitted': 'Draw from same cali h0, no refitting',
                     'true_refitted': 'Draw from true h0, refitted',
                     'refitted': 'Draw from different cali h0, refitted',
-                    'bootstrap_sample_refitted': 'Bootstrap from __ cali sample, refitted',
-                    'bootstrap_sample_not_refit': 'Bootstrap from __ cali sample, not refitted'
+                    'bootstrap_sample_refitted': 'Bootstrap from cali sample, refitted',
+                    'bootstrap_sample_not_refit': 'Bootstrap from cali sample, not refitted'
 }
 # -
 
@@ -228,12 +241,60 @@ plt.legend()
 plt.show()
 # -
 
-aa = np.linspace(0.,1., 500)
+raise
 
-sps.percentileofscore(aa, 0.6)
 
-aa = np.append(aa, [0.7, 0.893, 0.687])
 
-aa
+
+
+
+
+# ## Knut's alternative method of getting ECDF
+# but honestly, just toy MC many many and then `percentilescoreof` it
+
+import scipy.interpolate as spi
+
+aa = sps.norm().rvs(100) #just some data 
+#np.linspace(0., 1., 20)
+
+datapoints = aa.copy()
+cdfval_fcn = spi.interp1d(sorted(datapoints), np.linspace(0,1,len(datapoints)), bounds_error=False, fill_value=(0.,1.))
+
+T = 0.6
+print(sps.percentileofscore(aa, T))
+print(cdfval_fcn(T))
+
+aa = np.append(aa, [0.1, 0.23])
+cdfval_fcn2 = spi.interp1d(sorted(aa), np.linspace(0,1,len(aa)), bounds_error=False, fill_value=(0.,1.))
+
+print(sps.percentileofscore(aa, T))
+print(cdfval_fcn(T))
+print(cdfval_fcn2(T))
+
+# +
+aa = np.random.random(50_000)
+cdfval_fcn = spi.interp1d(sorted(aa), np.linspace(0,1,len(aa)), bounds_error=False, fill_value=(0.,1.))
+
+T = 0.6
+
+p = sps.percentileofscore(aa, T)/100.
+print(f'before percentileofscore: {p:.3f}, err {p-T:.5f}')
+p = cdfval_fcn(T)
+print(f'before interpolated: {p:.3f}, err {p-T:.5f}')
+
+print('***')
+
+aa = np.append(aa, [0.1, 0.23])
+cdfval_fcn2 = spi.interp1d(sorted(aa), np.linspace(0,1,len(aa)), bounds_error=False, fill_value=(0.,1.))
+
+p = sps.percentileofscore(aa, T)/100.
+print(f'after percentileofscore: {p:.3f}, err {p-T:.5f}')
+p = cdfval_fcn(T)
+print(f'before old interpolated: {p:.3f}, err {p-T:.5f}')
+p = cdfval_fcn2(T)
+print(f'before new interpolated: {p:.3f}, err {p-T:.5f}')
+# -
+
+np.random.random(100)
 
 
