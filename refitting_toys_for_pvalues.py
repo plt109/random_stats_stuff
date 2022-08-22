@@ -83,6 +83,11 @@ def bootstrap_cal_t(input_sample, h0, sample_size):
     return sample, t, p
 
 
+# Compute p-value from test statistic distribution
+def cal_p_from_toys(t, t_distribution):
+    return (100.-sps.percentileofscore(t_distribution, t))/100.
+
+
 # +
 # Defining true distribution that only nature knows
 true_mu = 3.
@@ -162,24 +167,41 @@ for ind_toy in range(n_toys):
     cheater_h0_t_bag[ind_toy] = this_t
 
 # +
+distribution_bag = {'not_refitted': cheater_h0_t_bag,
+                    'true_refitted': true_h0_t_bag,
+                    'refitted': refitted_h0_t_bag,
+                    'bootstrap_sample_refitted': bootstrap_h0_t_bag,
+                    'bootstrap_sample_not_refit': bootstrap_cheater_h0_t_bag
+}
+
+legend_bag = {'not_refitted': 'Draw from same cali h0, no refitting',
+                    'true_refitted': 'Draw from true h0, refitted',
+                    'refitted': 'Draw from different cali h0, refitted',
+                    'bootstrap_sample_refitted': 'Bootstrap from __ cali sample, refitted',
+                    'bootstrap_sample_not_refit': 'Bootstrap from __ cali sample, not refitted'
+}
+# -
+
+pval_bag = dict.fromkeys(distribution_bag, None)
+for aa in distribution_bag.keys():
+    pval_bag[aa] = cal_p_from_toys(cali_t, distribution_bag[aa])
+
+pval_bag
+
+# +
 nbins=50
 
-lb = min(min(cheater_h0_t_bag), min(true_h0_t_bag), min(refitted_h0_t_bag), min(bootstrap_h0_t_bag), min(bootstrap_cheater_h0_t_bag))
-ub = max(max(cheater_h0_t_bag), max(true_h0_t_bag), max(refitted_h0_t_bag), max(bootstrap_h0_t_bag), max(bootstrap_cheater_h0_t_bag))
+lb = min([min(distribution_bag[aa]) for aa in distribution_bag.keys()])
+ub = max([max(distribution_bag[aa]) for aa in distribution_bag.keys()])
 bin_edges = np.linspace(lb, ub, nbins)
 
 plt.figure(figsize=(13, 10), facecolor='w')
 plt.subplot(211)
-plt.hist(cheater_h0_t_bag, label='No refitting', \
-         histtype='step', bins=bin_edges, density=True)
-plt.hist(true_h0_t_bag, label='Draw from first guy from true h0', \
-         histtype='step', bins=bin_edges, density=True)
-plt.hist(refitted_h0_t_bag, label='Draw from first guy from cali h0', \
-         histtype='step', bins=bin_edges, density=True)
-plt.hist(bootstrap_h0_t_bag, label='Bootstrap from cali sample and refit', \
-         histtype='step', bins=bin_edges, density=True)
-plt.hist(bootstrap_cheater_h0_t_bag, label='Bootstrap from cali sample and no refit', \
-         histtype='step', bins=bin_edges, density=True)
+
+for ind_aa, aa in enumerate(distribution_bag.keys()):
+    plt.hist(distribution_bag[aa], label=f'{legend_bag[aa]}: {pval_bag[aa]:.2f}', \
+             bins=bin_edges, density=True, \
+             color=f'C{ind_aa}', histtype='step')
 
 plt.axvline(cali_t, c='k', lw=2, label='Test statistic from fitting calibration set')
 plt.xlabel('T')
@@ -188,16 +210,11 @@ plt.title(f'{n_toys} toys')
 plt.legend()
 
 plt.subplot(212)
-plt.hist(cheater_h0_t_bag, label='No refitting', \
-         histtype='step', bins=bin_edges, density=True, cumulative=-1)
-plt.hist(true_h0_t_bag,  label='Draw from first guy from true h0', \
-         histtype='step', bins=bin_edges, density=True, cumulative=-1)
-plt.hist(refitted_h0_t_bag, label='Draw from first guy from cali h0', \
-         histtype='step', bins=bin_edges, density=True, cumulative=-1)
-plt.hist(bootstrap_h0_t_bag, label='Bootstrap from cali sample and refit', \
-         histtype='step', bins=bin_edges, density=True, cumulative=-1)
-plt.hist(bootstrap_cheater_h0_t_bag, label='Bootstrap from cali sample and no refit', \
-         histtype='step', bins=bin_edges, density=True, cumulative=-1)
+
+for ind_aa, aa in enumerate(distribution_bag.keys()):
+    plt.hist(distribution_bag[aa], label=f'{legend_bag[aa]}: {pval_bag[aa]:.2f}', \
+             bins=bin_edges, density=True, cumulative=-1, \
+             color=f'C{ind_aa}', histtype='step')
 
 plt.axvline(cali_t, c='k', lw=2, label='Test statistic from fitting calibration set')
 
@@ -209,13 +226,14 @@ plt.ylabel('p-value')
 plt.legend()
 
 plt.show()
-
-# +
-print(100-sps.percentileofscore(cheater_h0_t_bag, cali_t)) # no refitting
-print(100-sps.percentileofscore(true_h0_t_bag, cali_t)) # draw first guy from h0
-print(100-sps.percentileofscore(refitted_h0_t_bag, cali_t)) # draw first guy from cali h0
-
-
 # -
+
+aa = np.linspace(0.,1., 500)
+
+sps.percentileofscore(aa, 0.6)
+
+aa = np.append(aa, [0.7, 0.893, 0.687])
+
+aa
 
 
