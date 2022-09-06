@@ -297,4 +297,11 @@ print(f'before new interpolated: {p:.3f}, err {p-T:.5f}')
 
 np.random.random(100)
 
+# number of toys required to get a particular accuracy for p-values
+#print(f'{(((2.87e-7)**0.5)/1e-8)**2.:0.6e}')
+print(f'{(((1e-3)**0.5)/1e-4)**2.:0.6e}')
+
+
+1-sps.norm.cdf(3.) # p-value equivalent
+
 
