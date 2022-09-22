@@ -135,7 +135,7 @@ plt.legend()
 plt.show()
 
 # +
-n_toys = 1000
+n_toys = 5000
     
 # always draw from true h0 (proper procedure of simulating full experiment)
 true_h0_t_bag = np.ones(n_toys)
@@ -156,7 +156,13 @@ cheater_h0_t_bag = np.ones(n_toys)
 for ind_toy in range(n_toys):
     _, this_t, _ = draw_cal_t(cali_h0, cali_size)
     cheater_h0_t_bag[ind_toy] = this_t
-    
+
+# always draw from cali h0 and compute t with refitting
+robert_h0_t_bag = np.ones(n_toys)
+for ind_toy in range(n_toys):
+    this_sample, this_theta_hat, this_t, _ = draw_fit_cal_t(cali_h0, cali_size)
+    robert_h0_t_bag[ind_toy] = this_t
+
 # bootstrapping from cali set and refitting
 bootstrap_h0_t_bag = np.ones(n_toys)
 for ind_toy in range(n_toys):
@@ -181,6 +187,7 @@ aa
 
 # +
 distribution_bag = {'not_refitted': cheater_h0_t_bag,
+                    'robert': robert_h0_t_bag,
                     'true_refitted': true_h0_t_bag,
                     'refitted': refitted_h0_t_bag,
                     'bootstrap_sample_refitted': bootstrap_h0_t_bag,
@@ -188,6 +195,7 @@ distribution_bag = {'not_refitted': cheater_h0_t_bag,
 }
 
 legend_bag = {'not_refitted': 'Draw from same cali h0, no refitting',
+              'robert': 'Draw from same cali h0, refitting',
                     'true_refitted': 'Draw from true h0, refitted',
                     'refitted': 'Draw from different cali h0, refitted',
                     'bootstrap_sample_refitted': 'Bootstrap from cali sample, refitted',
@@ -202,7 +210,7 @@ for aa in distribution_bag.keys():
 pval_bag
 
 # +
-nbins=50
+nbins=100
 
 lb = min([min(distribution_bag[aa]) for aa in distribution_bag.keys()])
 ub = max([max(distribution_bag[aa]) for aa in distribution_bag.keys()])
